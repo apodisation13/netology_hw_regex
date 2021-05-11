@@ -13,17 +13,21 @@ def make_phone_patter(phone_str: str):
     return result
 
 
-with open('default_phonebook.csv', 'r', encoding='utf-8') as file:
-    data = csv.reader(file, delimiter=',')
-    raw_data = list(data)
+def csv_reader(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        data = csv.reader(file, delimiter=',')
+        list_data = list(data)
+        return list_data
 
-clean_data = []
-surname_list = []  # в этот список буду добавлять фамилии, чтобы искать повторы
 
-clean_data.append(raw_data[0])  # добавляю заголовки полей из исходного файла
+def csv_writer(file_path, contacts_list):
+    with open(file_path, 'w', newline='', encoding='utf-8') as file:
+        datawriter = csv.writer(file, delimiter=',')
+        datawriter.writerows(contacts_list)
+    print(f'Проверьте файл {file_path}')
 
-for line in raw_data[1:]:
 
+def make_full_name(line, surname_list):
     correct_name = []  # для каждой строки исходного файла отдельный массив с правильными ФИО
 
     surname = line[0].split()
@@ -31,48 +35,29 @@ for line in raw_data[1:]:
     if surname[0] not in surname_list:
         surname_list.append(surname[0])
 
-        # ниже пойдём только если не повторное имя
-        # if len(surname) == 1:
-        #     correct_name.append(surname[0])
-        # elif len(surname) == 2:
-        #     correct_name.append(surname[0])
-        #     correct_name.append(surname[1])
-        # elif len(surname) == 3:
-        #     correct_name.append(surname[0])
-        #     correct_name.append(surname[1])
-        #     correct_name.append(surname[2])
-        #
-        # first_name = line[1].split()
-        #
-        # if len(first_name) == 1:
-        #     correct_name.append(first_name[0])
-        # elif len(first_name) == 2:
-        #     correct_name.append(first_name[0])
-        #     correct_name.append(first_name[1])
-        #
-        # last_name = line[2]
-        # if last_name:
-        #     correct_name.append(last_name)
-        #
         correct_name = re.findall(r'(\w+)', ' '.join(line[:3]))
         if len(correct_name) < 3:
             correct_name.append('')
-        # print(correct_name)
 
-    # print(surname[0])
+    return correct_name
+
+
+def find_name_index_line(surname_list, surname):
     for person in surname_list:
-        if surname[0] == person:
+        if surname == person:
             number = surname_list.index(person)  # ищу по фамилии номер строки повторяющегося человека
             # print(number)
-            break
+            return number
 
+
+def make_info(line, correct_name, clean_data, number):
     info_list = []  # список для позиций 3-6
-    total = []
 
     organization = line[3]
     position = line[4]
     phone = line[5]
     mail = line[6]
+    # print(organization, position, phone, mail)
 
     if correct_name:  # если имя не повторяется
         info_list.append(organization)
@@ -98,5 +83,27 @@ for line in raw_data[1:]:
             clean_data[number + 1][6] = mail
 
 
-for line in clean_data:
-    print(line)
+def make_clean_data():
+    raw_data = csv_reader('default_phonebook.csv')
+
+    clean_data = []  # ИТОГОВЫЙ СПИСОК
+    surname_list = []  # в этот список буду добавлять фамилии, чтобы искать повторы
+
+    clean_data.append(raw_data[0])  # добавляю заголовки полей из исходного файла
+
+    for line in raw_data[1:]:
+
+        correct_name = make_full_name(line, surname_list)
+        number = find_name_index_line(surname_list, line[0].split()[0])
+
+        make_info(line, correct_name, clean_data, number)
+
+    for line in clean_data:
+        print(line)
+
+    return clean_data
+
+
+if __name__ == "__main__":
+    clean_list = make_clean_data()
+    csv_writer('clean_phonebook.csv', clean_list)
